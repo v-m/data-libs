@@ -1,4 +1,4 @@
-# Dictss
+# Dicts
 
 A library for loading json/yaml files from directories and single files.
 
