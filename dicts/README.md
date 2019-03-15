@@ -23,7 +23,8 @@ loader = DictLoader.from_path(p)
 # Alternatively, you ask the loader to fail in such case
 loader = DictLoader.from_path(p, skip_errors=True)
 
-# By default we skip yaml/json files which are disabled by having `disable: True`. We can override this
+# By default we skip yaml/json files which are disabled by having `disable: True`.
+# We can override this by passing load_disabled_entries = True:
 loader = DictLoader.from_path(p, load_disabled_entries=True)
 
 # We can even override the disabled key
