@@ -1,0 +1,34 @@
+version: 1
+formatters:
+    simple:
+        # (): logging.Formatter
+        format: "%(levelname)-8s\t%(pathname)s:%(lineno)d\t%(funcName)s\t%(asctime)s\t%(relativeCreated)6dms\t%(message)s"
+    colored:
+        (): logger.formatters.color_formatter.ColoredFormatter
+        format: "%(colored_levelname)s|%(asctime)s| %(message)s"
+handlers:
+    console:
+        class: logging.StreamHandler
+        level: "{LOG_LEVEL_CONSOLE}"
+        formatter: colored
+        stream: ext://sys.stderr
+    file:
+        class: logging.handlers.TimedRotatingFileHandler
+        level: "{LOG_LEVEL_FILE}"
+        formatter: simple
+        filename: "{LOG_FILE_LOCATION}"
+        when: "{LOG_ROTATING_INTERVAL}"
+    slack: 
+        username: "{LOG_SLACK_USER}"
+        level: DEBUG
+        fail_silent: true
+        api_key: "{LOG_SLACK_TOKEN}"
+        class: slacker_log_handler.SlackerLogHandler
+        channel: "{DEFAULT_SLACK_CHANNEL}"
+loggers:
+    slack:
+        handlers: [slack]
+        level: !!python/name:logging.NOTSET
+root:
+    handlers: [console, file]
+    level: !!python/name:logging.NOTSET
