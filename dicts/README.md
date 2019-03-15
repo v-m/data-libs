@@ -20,7 +20,7 @@ p = Path("revolut-datascience/infra/helios/config/tables/users.json")
 loader = DictLoader.from_path(p)
 
 # By default, if yaml/json files are invalid, it will just warn and skip them.
-# Alternatively, you ask the loader to fail in such case
+# Alternatively, you can ask the loader to fail in such case:
 loader = DictLoader.from_path(p, skip_errors=True)
 
 # By default we skip yaml/json files which are disabled by having `disable: True`.
