@@ -1,0 +1,76 @@
+# Logger
+
+Base logging configuration. Includes the following out of the box:
+
+- writing to stderr (from INFO level). Highlights the log level with color.
+- writing to file, rotated every hour
+- writing to Google StackDriver, all fields, in json format
+
+## Usage
+
+```python
+from logger import get_logger
+
+log = get_logger()
+
+# We can also override some variable
+log.debug("Debug message")
+log.info("Info message")
+log.warning("Warning message")
+log.error("Error message")
+log.critical("Critical message ")
+
+# time.sleep(1)
+try:
+    0 / 0
+except Exception as e:
+    log.exception(e)
+```
+
+## Overrides
+
+By default, `logging.yaml` that can be found in this package is used to configure logging. Stackdriver capabilities are added on initialization.
+This yaml file is a template and can contain references to environment variables, such as `{HOME}`, etc
+It is possible to use your own `logging.yaml` with _LOG_CONFIG_PATH_ environment variable.
+You can also override those variables via _params_ variable:
+
+```python
+# This will make sure that only ERROR messages get written to console, and everything else is written to "some_other_file.log"
+log = get_logger(params={"LOG_FILE_LOCATION": "some_other_file.log",  "LOG_LEVEL_CONSOLE": "ERROR"})
+```
+
+## Handlers
+
+### Console
+
+Log levels are displayed colored. Default level is INFO.
+
+Variables to override:
+
+- **LOG_LEVEL_CONSOLE**: - default to INFO
+
+### File logging
+
+- **LOG_FILE_LOCATION**: - location of the file to write. Default is `log.log`, written to the current directory
+- **LOG_ROTATING_INTERVAL**: - how ofen to rotate the log file. Devault is `h`. Valid values for the rotation schedule are here https://docs.python.org/3/library/logging.handlers.html#logging.handlers.TimedRotatingFileHandler
+- **LOG_LEVEL_FILE**: - defaults to DEBUG
+
+## Stackdriver logging
+
+If **STACKDRIVER_LOGGING_ENABLE_VAR** environment is set to _TRUE_, logs are also written to Stackdriver
+
+## Slack logging
+
+**Warning**: sending Slack messages can be slow. Use only when reasonable.
+It is also possible to write to slack, using logger called slack.
+You need to set **LOG_SLACK_TOKEN** and **DEFAULT_SLACK_CHANNEL** variables via _params_ or environment:
+
+```python
+log = get_logger("slack", params={"DEFAULT_SLACK_CHANNEL": "errors", "LOG_SLACK_TOKEN": "<xxxxxxx>"})
+```
+
+Additional properties:
+
+- **LOG_SLACK_USER**: - Defaults to _Logger_,
+- **LOG_SLACK_TOKEN**: - is specified incorrectly, handler fails silently, no message is written. You just won't get any slack messages.
+- **DEFAULT_SLACK_CHANNEL**: - Where to write the messages. Mandatory to specify.
