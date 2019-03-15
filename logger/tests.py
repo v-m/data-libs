@@ -1,5 +1,6 @@
 import os
 import tempfile
+
 from logger import get_logger
 from logger.formatters.color_formatter import RESET_SEQ
 
@@ -21,9 +22,11 @@ def test_console_logging(capsys):
 
     # Console part
     assert "INF" in err
-    assert INFO_STRING in err, "logging doesn't work, mothing is written to stderr"
+    assert INFO_STRING in err, "logging doesn't work, nothing is written to stderr"
     assert RESET_SEQ in err, "color formatting not working"
-    assert "DBG" not in err, "DEBUG is writen to console, despite default settings in logging.yaml"
+    assert (
+        "DBG" not in err
+    ), "DEBUG is written to console, despite default settings in logging.yaml"
     assert (
         DEBUG_STRING not in err
     ), "DEBUG message is written to console, despite default settings in logging.yaml"
