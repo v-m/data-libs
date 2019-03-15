@@ -20,10 +20,10 @@ p = Path("revolut-datascience/infra/helios/config/tables/users.json")
 loader = DictLoader.from_path(p)
 
 # By default, if yaml/json files are invalid, it will just warn and skip them.
-# Alternatively, you ask ask loader to fail in such case
+# Alternatively, you ask the loader to fail in such case
 loader = DictLoader.from_path(p, skip_errors=True)
 
-# By default we skip yaml/json files which are disabled by having disable: True. We can override this
+# By default we skip yaml/json files which are disabled by having `disable: True`. We can override this
 loader = DictLoader.from_path(p, load_disabled_entries=True)
 
 # We can even override the disabled key
@@ -46,13 +46,14 @@ loader.group_by_key(transformator=Table.__init__)
 loader.group_by_key(key='id')
 loader.group_by_key(key=lambda d: d['id']+d['name'])
 
-# if there are items with duplicate keys, it will throw an exception. However, we can override it:
-loader.group_by_key(key='id', allow_duplicates=True) # will just write a warning, no exception raised
+# If there are items with duplicate keys, it will throw an exception. However, we can override it
+# to only write a warning and not raise the exception:
+loader.group_by_key(key='id', allow_duplicates=True)
 
 
-# To group loaded items by file name, use group_by_file. This will group by __PATH__ and have a list of items for each :
+# To group loaded items by file name, use group_by_file. This will group by __PATH__
+# and have a list of items for each:
 loader.group_by_file()
 # You can also specify the transformator
 loader.group_by_file(transformator=Table.__init__)
-
 ```

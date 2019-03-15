@@ -9,7 +9,9 @@ from ruamel.yaml import YAML
 log = logging.getLogger(__name__)
 yaml = YAML()
 
-# Original location of the file. To be used to hint the user for file location which contains a potential problem. Not mandatory.
+# Original location of the file.
+# To be used to hint the user for file location which contains a potential problem.
+# Not mandatory.
 PATH_KEY = "__PATH__"
 DEFAULT_PATH_KEY = "_"
 
