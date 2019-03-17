@@ -95,6 +95,13 @@ def test_to_dict_transform():
     assert out[a[0]["a"]] == a[0]["b"]
 
 
+def test_group_by_unordered():
+    a = [{PATH_KEY: "a"}, {PATH_KEY: "c"}, {PATH_KEY: "b"}, {PATH_KEY: "a"}]
+    loader = DictLoader.from_dicts(a)
+    out = loader.group_by_file()
+    assert len(out["a"]) == 2
+
+
 def test_duplicate():
     a = [{"name": 1, PATH_KEY: "x"}, {"name": 1, PATH_KEY: "y"}]
     loader = DictLoader.from_dicts(a)

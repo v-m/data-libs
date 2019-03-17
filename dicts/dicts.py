@@ -28,16 +28,11 @@ class DictLoader:
 
     @staticmethod
     def from_path(
-        path: Path,
-        skip_errors=False,
-        disabled_key: str = "disabled",
-        load_disabled: bool = False,
+        path: Path, skip_errors=False, disabled_key: str = "disabled", load_disabled: bool = False
     ):
         loader = DictLoader(path, skip_errors=skip_errors)
         loader.items = list(
-            DictLoader.remove_disabled_items(
-                loader.directory(), disabled_key, load_disabled
-            )
+            DictLoader.remove_disabled_items(loader.directory(), disabled_key, load_disabled)
         )
         return loader
 
@@ -49,13 +44,13 @@ class DictLoader:
         load_disabled: bool = False,
     ):
         loader = DictLoader(None, skip_errors=skip_errors)
-        loader.items = list(
-            DictLoader.remove_disabled_items(dicts, disabled_key, load_disabled)
-        )
+        loader.items = list(DictLoader.remove_disabled_items(dicts, disabled_key, load_disabled))
         return loader
 
     @staticmethod
-    def remove_disabled_items(items: Iterable[Dict], disabled_key: str, load_disabled: bool) -> Iterable[Dict]:
+    def remove_disabled_items(
+        items: Iterable[Dict], disabled_key: str, load_disabled: bool
+    ) -> Iterable[Dict]:
         if load_disabled:
             log.debug("load_disabled_items flag is True")
             return list(items)
@@ -120,7 +115,8 @@ class DictLoader:
     ) -> Iterable[Dict[str, List[Any]]]:
         key_func = (lambda d: d.get(key, default_group)) if isinstance(key, str) else key
         transformator_func = transformator or (lambda x: x)
-        for k, v in groupby(self.items, key=key_func):
+        items = sorted(self.items, key=key_func)
+        for k, v in groupby(items, key=key_func):
             yield (k, list(map(transformator_func, v)))
 
     def group_by_key(
