@@ -9,7 +9,7 @@ Base logging configuration. Includes the following out of the box:
 ## Usage
 
 ```python
-from logger import get_logger
+from revlibs.logger import get_logger
 
 log = get_logger()
 

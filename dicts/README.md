@@ -6,7 +6,7 @@ A library for loading json/yaml files from directories and single files.
 
 ```python
 from pathlib import Path
-from dicts import DictLoader, PATH_KEY
+from revlibs.dicts import DictLoader, PATH_KEY
 p = Path("revolut-datascience/infra/helios/config/tables")
 p = Path("../../revolut-datascience/infra/helios/config/tables")
 

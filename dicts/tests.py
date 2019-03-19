@@ -3,7 +3,7 @@ import tempfile
 import json
 import pytest
 from ruamel.yaml import YAML
-from dicts import PATH_KEY, DEFAULT_PATH_KEY, DictLoader
+from revlibs.dicts import PATH_KEY, DEFAULT_PATH_KEY, DictLoader
 
 yaml = YAML()
 
