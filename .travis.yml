@@ -1,0 +1,12 @@
+dist: xenial
+language: python
+python: 3.7
+before_install:
+  - cd $SUB_PACKAGE
+matrix:
+  include:
+    - name: "Test dicts"
+      env: SUB_PACKAGE=dicts
+    - name: "Test logger"
+      env: SUB_PACKAGE=logger
+script: pytest .
