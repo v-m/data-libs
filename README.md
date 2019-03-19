@@ -2,7 +2,7 @@
 
 ## Installing
 
-To install `dicts` or `logger` separately from the command line:
+To install `revlibs-dicts` or `revlibs-logger` separately from the command line:
 
 #### logger
 
