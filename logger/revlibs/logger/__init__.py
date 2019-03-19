@@ -37,9 +37,11 @@ def _load_logging_config_(params):
         with open(LOGGING_CONFIG_LOCATION) as f:
             config_str = f.read()
     else:
-        config_data = get_data("logger", "resources/logging.yaml")
+        config_data = get_data("revlibs.logger", "resources/logging.yaml")
         if config_data:
             config_str = config_data.decode("utf-8")
+        else:
+            raise Exception("Coould not find default logging.yaml")
     return yaml.load(config_str.format(**params), Loader=yaml.Loader)
 
 

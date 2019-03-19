@@ -4,7 +4,7 @@ formatters:
         # (): logging.Formatter
         format: "%(levelname)-8s\t%(pathname)s:%(lineno)d\t%(funcName)s\t%(asctime)s\t%(relativeCreated)6dms\t%(message)s"
     colored:
-        (): logger.formatters.color_formatter.ColoredFormatter
+        (): revlibs.logger.formatters.color_formatter.ColoredFormatter
         format: "%(colored_levelname)s|%(asctime)s| %(message)s"
 handlers:
     console:

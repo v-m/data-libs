@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="logger",
+    name="revlibs-logger",
     version="0.1.0",
     author="Demeter Sztanko",
     author_email="demeter.sztanko@revolut.com",
@@ -14,4 +14,5 @@ setup(
         "google-cloud-logging>=1.10.0",
         "slacker-log-handler>=1.7.1",
     ],
+    namescape_packages=["revlibs"],
 )

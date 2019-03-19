@@ -1,8 +1,8 @@
 import os
 import tempfile
 
-from logger import get_logger
-from logger.formatters.color_formatter import RESET_SEQ
+from revlibs.logger import get_logger
+from revlibs.logger.formatters.color_formatter import RESET_SEQ
 
 
 def test_console_logging(capsys):
