@@ -73,27 +73,3 @@ def exasol_connect(db_conn: DBConnection):
             "Could not connect to Exasol database. Connection string: %s",
             dsn.replace(password, "****"),
         )
-
-
-@register_connector("bigquery")
-def bigquery_connect(db_conn: DBConnection):
-    password = os.environ.get(db_conn.password, "")
-    hosts = ",".join(db_conn.hosts).format(**os.environ)
-    ports = extend(db_conn.ports, len(hosts))
-    dsn = ",".join(f"{k}:{v}" for (k, v) in zip(db_conn.hosts, ports)).format(**os.environ)
-    params = {"schema": db_conn.schema, "compression": True}
-    params.update(db_conn.params)
-    try:
-        connection: pyexasol.ExaConnection = pyexasol.connect(
-            dsn=dsn,
-            user=db_conn.user.format(**os.environ),
-            password=password,
-            fetch_dict=True,
-            **params,
-        )
-        return connection
-    except Exception as e:
-        log.error(
-            "Could not connect to Exasol database. Connection string: %s",
-            dsn.replace(password, "****"),
-        )
