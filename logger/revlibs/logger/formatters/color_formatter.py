@@ -1,4 +1,5 @@
 import logging
+import sys
 from enum import IntEnum, Enum
 
 
@@ -41,7 +42,7 @@ class ColoredFormatter(logging.Formatter):
 
     def format(self, record):
         levelname = record.levelname
-        if levelname in LevelColor.__members__:
+        if levelname in LevelColor.__members__ and sys.stdout.isatty():
             levelname_color = (
                 # Akhil and Daniele though using enums is a good idea
                 COLOR_SEQ % (30 + LevelColor[levelname].value.value)
@@ -49,4 +50,6 @@ class ColoredFormatter(logging.Formatter):
                 + RESET_SEQ
             )
             record.colored_levelname = levelname_color
+        else:
+            record.colored_levelname = levelname
         return super().format(record)

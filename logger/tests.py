@@ -1,13 +1,15 @@
 import os
 import tempfile
+import sys
 
 from revlibs.logger import get_logger
 from revlibs.logger.formatters.color_formatter import RESET_SEQ
 
 
-def test_console_logging(capsys):
+def test_console_logging(capsys, monkeypatch):
     INFO_STRING = "info_test"
     DEBUG_STRING = "debug_test"
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
     with tempfile.NamedTemporaryFile(delete=False) as f:
         file_name = f.name
     params = {"LOG_FILE_LOCATION": file_name}

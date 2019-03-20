@@ -57,7 +57,7 @@ Variables to override:
 
 ## Stackdriver logging
 
-If **STACKDRIVER_LOGGING_ENABLE_VAR** environment is set to _TRUE_, logs are also written to Stackdriver
+If **STACKDRIVER_LOGGING_ENABLE** environment is set to _TRUE_, logs are also written to Stackdriver
 
 ## Slack logging
 
