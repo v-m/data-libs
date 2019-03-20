@@ -30,10 +30,10 @@ def posgres_connect(db_conn: DBConnection):
     ports = extend(db_conn.ports, len(hosts))
     conn_string = conn_tpl.format(
         host=",".join(db_conn.hosts).format(**os.environ),
-        db=db_conn.schema,
-        user=db_conn.user,
+        db=db_conn.schema.format(**os.environ),
+        user=db_conn.user.format(**os.environ),
         passw=password,
-        port=",".join(str(port) for port in ports),
+        port=",".join(str(port).format(**os.environ) for port in ports),
     )
     try:
         # get a connection, if a connect cannot be made an exception will be raised here
