@@ -51,13 +51,13 @@ Variables to override:
 
 ### File logging
 
-- **LOG_FILE_LOCATION**: - location of the file to write. Default is `log.log`, written to the current directory
+- **LOG_FILE_LOCATION**: - location of the file to write. Default is `/tmp/python-app.log`.
 - **LOG_ROTATING_INTERVAL**: - how often to rotate the log file. Default is `h`. Valid values for the rotation schedule are here https://docs.python.org/3/library/logging.handlers.html#logging.handlers.TimedRotatingFileHandler
 - **LOG_LEVEL_FILE**: - defaults to DEBUG
 
 ## Stackdriver logging
 
-If **STACKDRIVER_LOGGING_ENABLE_VAR** environment is set to _TRUE_, logs are also written to Stackdriver
+If **STACKDRIVER_LOGGING_ENABLE** environment is set to _TRUE_, logs are also written to Stackdriver
 
 ## Slack logging
 

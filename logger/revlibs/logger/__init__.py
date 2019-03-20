@@ -13,7 +13,7 @@ from .formatters import color_formatter
 from .formatters import stackdriver_formatter
 
 DEFAULTS = {
-    "LOG_FILE_LOCATION": "log.log",
+    "LOG_FILE_LOCATION": "/tmp/python-log.log",
     "LOG_ROTATING_INTERVAL": "h",
     # "APP_NAME": "Python application",
     "LOG_LEVEL_CONSOLE": "INFO",
