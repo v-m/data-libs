@@ -1,0 +1,8 @@
+name: postgres_simple
+type: postgres
+params:
+    hosts: [127.0.0.1]
+    ports: [5436]
+    user: test
+    password: TEST_PASS
+    schema: s

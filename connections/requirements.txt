@@ -1,0 +1,5 @@
+revlibs-dicts>=0.0.1
+revlibs-logger>=0.0.2
+json-codegen>=0.4.2
+psycopg2>=2.7.7
+pyexasol>=0.5.2
