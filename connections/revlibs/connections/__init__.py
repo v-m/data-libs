@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from typing import Dict
 
 from revlibs.dicts import DictLoader
-from revlibs.logger import get_logger
 
 from .connection_model import Connection, DBConnection
 from .connectors import *
@@ -34,10 +33,11 @@ def _get_available_connections_(config_path) -> Dict[str, Connection]:
 
 
 @contextmanager
-def get_connection_by_name(connection_name: str, config_path: str = CONNECTIONS_CONFIG_PATH):
+def get_connection_by_name(
+    connection_name: str, config_path: str = CONNECTIONS_CONFIG_PATH
+):
     connection_config = _get_available_connections_(config_path)[connection_name]
     connector = get_connector(connection_config.type)
     connection = connector(connection_config.params)
     yield connection
     connection.close()
-
