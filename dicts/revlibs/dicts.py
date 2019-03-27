@@ -43,6 +43,7 @@ class Dicts:
         self.is_path, self.is_dir = self.classify_path()
 
         self.items = self.remove_disabled_items() if self._load_disabled_ else self._items_
+        self.cast_items = None
 
     def classify_path(self):
         if self.path:
@@ -98,7 +99,7 @@ class Dicts:
                 contents = yaml.load_all(f)
 
             elif suffix == ".json":
-                contents = list(json.load(f))
+                contents = [json.load(f)]
 
             else:
                 log.debug(f"Suffix {suffix} not loadable for path {full_path}")
@@ -140,9 +141,15 @@ class Dicts:
                 log.warning(f"Could not load {path}: {e}")
                 log.exception(e)
 
-    def cast_as(self, type_: Callable[[Dict], Any]) -> Iterable[Any]:
-        for item in self.items:
-            yield type_(item)
+    def items_as(self, type_: Callable[[Dict], Any]) -> Iterable[Any]:
+
+        def cast():
+            for item in self.items:
+                yield type_(item)
+        
+        self.cast_items = cast()
+
+        return self
 
     def _grouper_(
         self, key: Union[Callable[[Dict], str], str], default: str
@@ -156,7 +163,7 @@ class Dicts:
         Returns:
             A function by which a dictionary can be grouped
         """
-        return key if not isinstance(key, str) else lambda d: d.get(key, default)
+        return lambda d: d.get(key, default) if isinstance(key, str) else key
 
     def group_by(
         self, key: Union[Callable[[Dict], str], str], default: str, strict: bool
@@ -173,7 +180,8 @@ class Dicts:
         Returns:
             A dictionary 
         """
-        for k, v in groupby(self.items, key=self._grouper_(key, default)):
+        elements = self.cast_items if self.cast_items else self.items
+        for k, v in groupby(elements, key=self._grouper_(key, default)):
             items = list(v)
             n = len(items)
             if n > 1:

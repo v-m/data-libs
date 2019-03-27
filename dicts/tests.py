@@ -79,7 +79,7 @@ def test_load_dicts(generator, num_files, expected_size, extensions):
 def test_to_dict_simple():
     a = [{"a": 1, PATH_KEY: "x"}]
     loader = Dicts.from_dicts(a)
-    out = loader.strict_group_by_name(key="a")
+    out = loader.strict_group_by_name(key="a", default="_")
     assert isinstance(out, dict), "to_dict returns a dict"
     assert len(out) == 1
     assert out[a[0]["a"]] == a[0]
@@ -88,8 +88,8 @@ def test_to_dict_simple():
 def test_to_dict_transform():
     a = [{"a": "aa", "b": "bb", PATH_KEY: "x"}]
     loader = Dicts.from_dicts(a)
-    transformator = lambda d: d["b"]
-    out = loader.strict_group_by_name(key="a", transformator=transformator)
+    pick_b = lambda d: d["b"]
+    out = loader.items_as(pick_b).strict_group_by_name(key="a", default="_")
     assert isinstance(out, dict), "to_dict returns a dict"
     assert len(out) == 1
     assert out[a[0]["a"]] == a[0]["b"]
