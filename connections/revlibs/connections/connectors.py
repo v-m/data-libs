@@ -1,15 +1,15 @@
-from abc import abstractmethod
 import os
+import logging
+
 import psycopg2
 import pyexasol
-from revlibs.logger import get_logger
 
 from .connection_model import Connection, DBConnection
 from .registry import register_connector
 from .utils import as_list, extend
 
-log = get_logger()
 
+log = logging.getLogger(__name__)
 
 """
 This is a library of functions for returning connections to all kinds of dbms
@@ -24,7 +24,9 @@ def posgres_connect(db_conn: DBConnection):
     Connect to a PostgresSQL database, using the config object provided
     :return: psycopg2 cursor object
     """
-    conn_tpl = "host='{host}' dbname='{db}' user='{user}' password='{passw}' port='{port}'"
+    conn_tpl = (
+        "host='{host}' dbname='{db}' user='{user}' password='{passw}' port='{port}'"
+    )
     hosts = as_list(db_conn.hosts)
     password = os.getenv(db_conn.password, "")
     ports = extend(db_conn.ports, len(hosts))
@@ -56,7 +58,9 @@ def exasol_connect(db_conn: DBConnection):
     password = os.environ.get(db_conn.password, "")
     hosts = ",".join(db_conn.hosts).format(**os.environ)
     ports = extend(db_conn.ports, len(hosts))
-    dsn = ",".join(f"{k}:{v}" for (k, v) in zip(db_conn.hosts, ports)).format(**os.environ)
+    dsn = ",".join(f"{k}:{v}" for (k, v) in zip(db_conn.hosts, ports)).format(
+        **os.environ
+    )
     params = {"schema": db_conn.schema, "compression": True}
     params.update(db_conn.params)
     try:
