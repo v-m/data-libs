@@ -3,13 +3,10 @@ import os
 import logging
 from pathlib import Path
 
-import yaml
+from revlibs.dicts import DictLoader
 
 
-log = logging.getLogger(__name__)
-
-
-_DEFAULT_FILE = Path.home() / ".revconnect"
+_DEFAULT_DIRECTORY = Path.home() / ".revconnect/"
 _ENV_VAR_FOR_FILE = "REVLIB_CONNECTIONS"
 
 
@@ -43,28 +40,26 @@ class Config:
         raise NameError(f"Database flavour requires '{key}'.")
 
 
-def connections_file():
+def connections_settings():
     """ Retrieve connections from specified yaml."""
-    revconnect_path = os.environ.get(_ENV_VAR_FOR_FILE, _DEFAULT_FILE)
-    with open(Path(revconnect_path)) as file:
-        connections = yaml.load(file)
-    return connections
-
-
-def db_names():
-    """ Retrieve names of connections."""
-    conn = connections_file()
-    return list(conn.keys())
+    directory = os.environ.get(_ENV_VAR_FOR_FILE, _DEFAULT_DIRECTORY)
+    loader = DictLoader.from_path(directory)
+    return loader
 
 
 def load(database):
     """ Load the database connection configuration."""
-    connections = connections_file()
+    connections = connections_settings()
 
-    try:
-        db_config = connections[database]
-    except KeyError as err:
-        log.exception(err, f"No config for db called: '{database}'.")
-        raise
+    for item in connections.items:
+        if database in item:
+            db_config = item[database]
+            break
+    else:
+        logging.error(f"No config for db called: '%s'.", database)
+        return None
 
-    return Config(database, db_config)
+    cfg = Config(database, db_config)
+    if "disabled" in cfg and cfg.disabled is True:
+        return None
+    return cfg

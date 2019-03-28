@@ -3,6 +3,7 @@ import logging
 from contextlib import contextmanager
 
 import psycopg2
+import pyexasol
 
 from revlibs.connections import config
 
@@ -10,11 +11,33 @@ log = logging.getLogger(__name__)
 
 
 class ConnectExasol:
-    pass
+    """ Bridge method of connecting and exasol."""
+
+    def __init__(self, cfg):
+        self.name = cfg.name
+        #: We follow the pyexasol convention of dsn.
+        self.dsn = cfg.dsn
+        self.config = cfg
+
+    def connect(self):
+        """ Attempt to connect to exasol."""
+        schema = self.config.schema if ("schema" in self.config) else None
+        params = {"schema": schema, "compression": True}
+        try:
+            self.connection = pyexasol.connect(
+                dsn=self.dsn,
+                user=self.config.user,
+                password=self.config.password,
+                fetch_dict=True,
+                **params,
+            )
+        except pyexasol.exceptions.ExaError as err:
+            log.exception(err)
+        return self.connection
 
 
 class ConnectPostgres:
-    """ Bridges the standard method of connecting to a database and postgres."""
+    """ Bridges method of connecting and postgres."""
 
     def __init__(self, cfg):
         self.name = cfg.name
@@ -63,5 +86,8 @@ def get(name):
     cfg = config.load(name)
     obj = _CONNECTORS[cfg.flavour]
     connector = obj(cfg)
-    yield connector.connect()
-    connector.close()
+    if connector:
+        yield connector.connect()
+        connector.close()
+    else:
+        yield None
