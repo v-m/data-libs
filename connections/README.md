@@ -62,8 +62,6 @@ We can have multiple connections in a single file.
   schema: events
 ```
 
-#### Note
-
 Ensure you have no collision with environment variables by prefixing
 your environment connection parameters with your connection name. E.g.
 the env var for the sandboxdb will be called `SANDBOXDB_PASSWORD`.

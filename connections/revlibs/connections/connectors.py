@@ -36,6 +36,10 @@ class ConnectExasol:
             log.exception(err)
         return self.connection
 
+    def close(self):
+        """ Close the connection."""
+        self.connection.close()
+
 
 class ConnectPostgres:
     """ Bridges method of connecting and postgres."""

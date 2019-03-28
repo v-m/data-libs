@@ -13,13 +13,17 @@ _ENV_VAR_FOR_FILE = "REVLIB_CONNECTIONS"
 def load(database):
     """ Load the database connection configuration."""
     loader = load_connection_settings()
+    candidates = [
+        item
+        for item in loader.items
+        if database == item["name"] and item.get("disabled", False) is not True
+    ]
 
-    for item in loader.items:
-        if database == item["name"]:
-            db_config = item
-            if "disabled" in db_config and db_config["disabled"] is True:
-                continue
-            break
+    if len(candidates) == 1:
+        db_config, *_ = candidates
+    elif len(candidates) > 1:
+        logging.error("Duplicate connection name '%s'.", database)
+        raise KeyError(f"Duplicates for '{database}' found.")
     else:
         logging.error(f"No config for db called: '%s'.", database)
         raise KeyError(f"Connection settings for '{database}' not found.")
@@ -78,6 +82,6 @@ class Config:
 
 def load_connection_settings():
     """ Retrieve connections from specified yaml."""
-    directory = os.environ.get(_ENV_VAR_FOR_FILE, _DEFAULT_DIRECTORY)
+    directory = Path(os.environ.get(_ENV_VAR_FOR_FILE, _DEFAULT_DIRECTORY))
     loader = DictLoader.from_path(directory)
     return loader
