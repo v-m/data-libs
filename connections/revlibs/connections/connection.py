@@ -23,6 +23,7 @@ class ConnectExasol:
         """ Attempt to connect to exasol."""
         schema = self.config.schema if ("schema" in self.config) else None
         params = {"schema": schema, "compression": True}
+        params.update(self.config.params)
         try:
             self.connection = pyexasol.connect(
                 dsn=self.dsn,
@@ -65,6 +66,7 @@ class ConnectPostgres:
                     user=self.config.user,
                     password=self.config.password,
                     dbname=dbname,
+                    **self.config.params,
                 )
                 break
             except psycopg2.OperationalError as err:
@@ -84,7 +86,12 @@ _CONNECTORS = {"exasol": ConnectExasol, "postgres": ConnectPostgres}
 def get(name):
     """ Grab a connection."""
     cfg = config.load(name)
-    obj = _CONNECTORS[cfg.flavour]
+    try:
+        obj = _CONNECTORS[cfg.flavour]
+    except KeyError as err:
+        log.exception(err, f"unsupported database {cfg.flavour}")
+        raise
+
     connector = obj(cfg)
     if connector:
         yield connector.connect()
