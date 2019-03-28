@@ -1,1 +1,1 @@
-from revlibs.connections.connection import get
+from revlibs.connections.connectors import get

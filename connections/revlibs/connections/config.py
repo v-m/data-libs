@@ -10,6 +10,23 @@ _DEFAULT_DIRECTORY = Path.home() / ".revconnect/"
 _ENV_VAR_FOR_FILE = "REVLIB_CONNECTIONS"
 
 
+def load(database):
+    """ Load the database connection configuration."""
+    loader = load_connection_settings()
+
+    for item in loader.items:
+        if database == item["name"]:
+            db_config = item
+            if "disabled" in db_config and db_config["disabled"] is True:
+                continue
+            break
+    else:
+        logging.error(f"No config for db called: '%s'.", database)
+        raise KeyError(f"Connection settings for '{database}' not found.")
+
+    return Config(database, db_config)
+
+
 class Config:
     """Connection config."""
 
@@ -46,38 +63,21 @@ class Config:
 
     def __getattr__(self, key):
         """ Get attr from environment, if not set return default."""
-        if key in self.config:
-            result = self.config[key]
-            print(result)
-            if result.startswith("_env"):
-                var_split = result.split(":", 2)
-                var_name = var_split[1]
-                var_default = "" if len(var_split) < 3 else var_split[2]
-                result = os.environ.get(var_name, var_default)
-            return result
-        raise NameError(f"Database flavour requires '{key}'.")
+        if key not in self.config:
+            raise NameError(f"Database flavour requires '{key}'.")
+
+        result = self.config[key]
+        if isinstance(result, str) and result.startswith("_env"):
+            var_split = result.split(":", 2)
+            var_name = var_split[1]
+            print(var_split)
+            var_default = "" if len(var_split) < 3 else var_split[2]
+            result = os.environ.get(var_name, var_default)
+        return result
 
 
-def connections_settings():
+def load_connection_settings():
     """ Retrieve connections from specified yaml."""
     directory = os.environ.get(_ENV_VAR_FOR_FILE, _DEFAULT_DIRECTORY)
     loader = DictLoader.from_path(directory)
     return loader
-
-
-def load(database):
-    """ Load the database connection configuration."""
-    connections = connections_settings()
-
-    for item in connections.items:
-        if database in item:
-            db_config = item[database]
-            break
-    else:
-        logging.error(f"No config for db called: '%s'.", database)
-        raise KeyError(f"Connection settings for '{database}' not found.")
-
-    cfg = Config(database, db_config)
-    if "disabled" in cfg and cfg.disabled is True:
-        return None
-    return cfg
