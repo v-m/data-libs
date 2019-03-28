@@ -26,6 +26,10 @@ class Config:
         """
         return repr(self.config)
 
+    def __contains__(self, item):
+        """ Determine if config has an attr."""
+        return item in self.config.keys()
+
     def __getattr__(self, key):
         """ Get attr from environment, if not set return default."""
         if key in self.config:
