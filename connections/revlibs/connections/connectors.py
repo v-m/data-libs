@@ -1,75 +1,104 @@
-from abc import abstractmethod
-import os
+""" Standard connection interface."""
+import logging
+from contextlib import contextmanager
+
 import psycopg2
 import pyexasol
-from revlibs.logger import get_logger
 
-from .connection_model import Connection, DBConnection
-from .registry import register_connector
-from .utils import as_list, extend
+from revlibs.connections import config
 
-log = get_logger()
+log = logging.getLogger(__name__)
 
 
-"""
-This is a library of functions for returning connections to all kinds of dbms
-The `register_connector` decorator is here just to 
-"""
+class ConnectExasol:
+    """ Bridge method of connecting and exasol."""
+
+    def __init__(self, cfg):
+        self.name = cfg.name
+        #: We follow the pyexasol convention of dsn.
+        self.dsn = cfg.dsn
+        self.config = cfg
+
+    def connect(self):
+        """ Attempt to connect to exasol."""
+        schema = self.config.schema if ("schema" in self.config) else None
+        params = {"schema": schema, "compression": True}
+        params.update(self.config.params)
+        try:
+            self.connection = pyexasol.connect(
+                dsn=self.dsn,
+                user=self.config.user,
+                password=self.config.password,
+                fetch_dict=True,
+                **params,
+            )
+        except pyexasol.exceptions.ExaError as err:
+            log.exception(err)
+        return self.connection
+
+    def close(self):
+        """ Close the connection."""
+        self.connection.close()
 
 
-@register_connector("postgres")
-def posgres_connect(db_conn: DBConnection):
+class ConnectPostgres:
+    """ Bridges method of connecting and postgres."""
 
-    """
-    Connect to a PostgresSQL database, using the config object provided
-    :return: psycopg2 cursor object
-    """
-    conn_tpl = "host='{host}' dbname='{db}' user='{user}' password='{passw}' port='{port}'"
-    hosts = as_list(db_conn.hosts)
-    password = os.getenv(db_conn.password, "")
-    ports = extend(db_conn.ports, len(hosts))
-    conn_string = conn_tpl.format(
-        host=",".join(db_conn.hosts).format(**os.environ),
-        db=db_conn.schema.format(**os.environ),
-        user=db_conn.user.format(**os.environ),
-        passw=password,
-        port=",".join(str(port).format(**os.environ) for port in ports),
-    )
+    def __init__(self, cfg):
+        self.name = cfg.name
+        self.dsn = cfg.dsn
+        self.config = cfg
+
+    def _parse_dsn(self, data_source_name):
+        """ We need to parse the standard dsn string into
+        an acceptable format for postgres.
+
+        'localhost:8888' -> 'host=localhost port=8888'
+        """
+        dsns = data_source_name.split(",")
+        for dsn in dsns:
+            host, port = dsn.split(":")
+            yield f"host={host} port={port}"
+
+    def connect(self):
+        """ Attempt to connect to postgres."""
+        dbname = self.config.dbname if ("dbname" in self.config) else None
+        for data_source_name in self._parse_dsn(self.dsn):
+            try:
+                self.connection = psycopg2.connect(
+                    data_source_name,
+                    user=self.config.user,
+                    password=self.config.password,
+                    dbname=dbname,
+                    **self.config.params,
+                )
+                break
+            except psycopg2.OperationalError as err:
+                log.exception(err)
+                continue
+        return self.connection
+
+    def close(self):
+        """ Close the connection."""
+        self.connection.close()
+
+
+_CONNECTORS = {"exasol": ConnectExasol, "postgres": ConnectPostgres}
+
+
+@contextmanager
+def get(name):
+    """ Grab a connection."""
+    cfg = config.load(name)
     try:
-        # get a connection, if a connect cannot be made an exception will be raised here
-        postgres_conn = psycopg2.connect(conn_string)
-        # postgres_conn.set_session(readonly=True, autocommit=True)
-        # conn.cursor will return a cursor object, you can use this cursor to perform queries
-        return postgres_conn
+        obj = _CONNECTORS[cfg.flavour]
+    except KeyError as err:
+        log.exception(err, f"unsupported database {cfg.flavour}")
+        raise
 
-    except psycopg2.OperationalError as e:
-        log.error(
-            "Could not connect to database. Connection string: %s",
-            conn_string.replace(password, "****"),
-        )
-        log.exception(e)
-    return None
-
-
-@register_connector("exasol")
-def exasol_connect(db_conn: DBConnection):
-    password = os.environ.get(db_conn.password, "")
-    hosts = ",".join(db_conn.hosts).format(**os.environ)
-    ports = extend(db_conn.ports, len(hosts))
-    dsn = ",".join(f"{k}:{v}" for (k, v) in zip(db_conn.hosts, ports)).format(**os.environ)
-    params = {"schema": db_conn.schema, "compression": True}
-    params.update(db_conn.params)
-    try:
-        connection: pyexasol.ExaConnection = pyexasol.connect(
-            dsn=dsn,
-            user=db_conn.user.format(**os.environ),
-            password=password,
-            fetch_dict=True,
-            **params,
-        )
-        return connection
-    except Exception as e:
-        log.error(
-            "Could not connect to Exasol database. Connection string: %s",
-            dsn.replace(password, "****"),
-        )
+    connector = obj(cfg)
+    if connector:
+        yield connector.connect()
+        connector.close()
+    else:
+        yield None

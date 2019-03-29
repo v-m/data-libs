@@ -1,8 +1,9 @@
+""" Package setup."""
 from setuptools import setup, find_packages
 
 setup(
     name="revlibs-connections",
-    version="0.0.1",
+    version="0.0.2",
     author="Demeter Sztanko",
     author_email="demeter.sztanko@revolut.com",
     packages=find_packages(),
@@ -13,5 +14,5 @@ setup(
         "psycopg2>=2.7.7",
         "pyexasol>=0.5.2",
     ],
-    namescape_packages=["revlibs"],
+    namespace_packages=["revlibs"],
 )

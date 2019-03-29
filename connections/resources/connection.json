@@ -1,20 +1,36 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Connection",
+  "$id": "http://example.com/root.json",
+  "type": "array",
+  "title": "Connections",
+  "items": {
+    "$id": "#/items",
+    "type": "object",
+    "oneOf": [
+      {
+        "$ref": "#/definitions/connection"
+      }
+    ],
+    "required": [
+      "name",
+      "flavour"
+    ]
+  },
   "definitions": {
-    "DBConnection": {
+    "connection": {
       "properties": {
-        "hosts": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "name": {
+          "type": "string"
         },
-        "ports": {
-          "type": "array",
-          "items": {
-            "type": "integer"
-          }
+        "flavour": {
+          "type": "string",
+          "enum": [
+            "postgres",
+            "exasol"
+          ]
+        },
+        "dsn": {
+          "type": "string"
         },
         "user": {
           "type": "string"
@@ -22,33 +38,18 @@
         "password": {
           "type": "string"
         },
-        "schema": {
-          "type": "string"
-        },
         "params": {
           "type": "object",
-          "default": {}
+          "default": {
+
+          }
         }
       },
-      "required": ["ports", "user", "password", "hosts"],
-      "type": "object"
+      "required": [
+        "dsn",
+        "user",
+        "password"
+      ]
     }
-  },
-  "properties": {
-    "name": {
-      "type": "string"
-    },
-    "type": {
-      "type": "string"
-    },
-    "params": {
-      "type": "object",
-      "oneOf": [{ "$ref": "#/definitions/DBConnection" }]
-    },
-    "disabled": {
-      "type": "boolean",
-      "default": false
-    }
-  },
-  "required": ["name", "type", "params"]
+  }
 }

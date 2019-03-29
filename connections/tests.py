@@ -1,55 +1,89 @@
-import os
+""" Test connection library."""
+from pathlib import PurePath, Path
+from unittest.mock import patch
+from unittest.mock import call
+from unittest.mock import MagicMock
+
 import pytest
 import psycopg2
 import pyexasol
-from revlibs.connections import get_connection_by_name
+
+from revlibs.connections import get
 
 
-class ConnectionMock:
-    def __init__(self, *x, **y):
-        self.input = x
-        self.vars = y
-
-    def close(self):
-        pass
+class ConnectionMock(MagicMock):
+    """ Mock connection objects."""
 
 
-def test_simple_postgres(monkeypatch):
-    monkeypatch.setattr(psycopg2, "connect", lambda x: ConnectionMock(x))
-    with get_connection_by_name("postgres_simple") as connection:
-        expected_connection_str = "host='{host}' dbname='{db}' user='{user}' password='{passw}' port='{port}'".format(
-            host="127.0.0.1", db="s", user="test", passw=os.environ.get("TEST_PASS"), port=5436
-        )
-        assert connection.input[0] == expected_connection_str
+# Environment variables are strings by default
+_TEST_CONNECTIONS = str(
+    Path(PurePath(__file__).parent / "resources" / "test_connections/")
+)
+_TEST_EVIRONMENT = {"REVLIB_CONNECTIONS": _TEST_CONNECTIONS, "TEST_PASS": "IamAwizard"}
 
 
-def test_multi_server_postgres(monkeypatch):
-    monkeypatch.setattr(psycopg2, "connect", lambda x: ConnectionMock(x))
-    with get_connection_by_name("postgres_multi_server") as connection:
-        expected_connection_str = "host='{host1},{host2}' dbname='{db}' user='{user}' password='{passw}' port='{port},{port}'".format(
-            host1="127.0.0.1",
-            host2="127.0.0.2",
-            db="s",
-            user="test",
-            passw=os.environ.get("TEST_PASS"),
-            port=5436,
-        )
-        assert connection.input[0] == expected_connection_str
+@patch.dict("os.environ", _TEST_EVIRONMENT)
+def test_simple_postgres():
+    """ Test connection to postgres."""
+    with patch("psycopg2.connect") as mocked_conn:
+
+        with get("postgres_simple") as conn:
+            pass
+
+    mocked_conn.assert_called_with(
+        "host=127.0.0.1 port=5436", dbname=None, password="IamAwizard", user="test"
+    )
+    conn.close.assert_called()
 
 
-def test_multi_server_exasol(monkeypatch):
-    monkeypatch.setattr(pyexasol, "connect", lambda **x: ConnectionMock(**x))
-    with get_connection_by_name("exasol_multi_server") as connection:
-        expected_connection_dsn = "{host1}:{port1},{host2}:{port2}".format(
-            host1="127.0.0.1", host2="127.0.0.1", port1=5436, port2=5437
-        )
-        assert connection.vars["dsn"] == expected_connection_dsn
-        assert connection.vars["user"] == "test"
-        assert connection.vars["schema"] == "s"
+@patch.dict("os.environ", _TEST_EVIRONMENT)
+def test_multi_server_postgres():
+    """ First host:port fails, handle failover."""
+    with patch("psycopg2.connect") as mocked_conn:
+        mocked_conn.side_effect = [psycopg2.OperationalError, ConnectionMock()]
+
+        with get("postgres_multi_server") as conn:
+            pass
+
+    mocked_conn.assert_has_calls(
+        [
+            call(
+                "host=127.0.0.1 port=5436",
+                dbname=None,
+                password="IamAwizard",
+                user="test",
+            ),
+            call(
+                "host=127.0.0.2 port=5436",
+                dbname=None,
+                password="IamAwizard",
+                user="test",
+            ),
+        ]
+    )
+    conn.close.assert_called()
+
+
+@patch.dict("os.environ", _TEST_EVIRONMENT)
+def test_multi_server_exasol():
+    """ Test passing exasol multiple connections."""
+    with patch("pyexasol.connect") as mocked_conn:
+
+        with get("exasol_multi_server") as conn:
+            pass
+    mocked_conn.assert_called_with(
+        compression=True,
+        dsn="127.0.0.1:5436,127.0.0.2:5437",
+        fetch_dict=True,
+        password="IamAwizard",
+        schema="s",
+        user="test",
+    )
+    conn.close.assert_called()
 
 
 def test_disabled_connection():
+    """ Disabled connections are not handled."""
     with pytest.raises(KeyError):
-        with get_connection_by_name("postgres_disabled") as connection:
-            assert not connection, "Disabled connections are not handled"
-
+        with get("postgres_disabled") as connection:
+            assert not connection
