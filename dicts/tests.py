@@ -79,7 +79,7 @@ def test_load_dicts(generator, num_files, expected_size, extensions):
 def test_to_dict_simple():
     a = [{"a": 1, PATH_KEY: "x"}]
     loader = Dicts.from_dicts(a)
-    out = loader.map_by_name(key="a", default="_")
+    out = loader.map_by(key="a", default="_")
     assert isinstance(out, dict), "to_dict returns a dict"
     assert len(out) == 1
     assert out[a[0]["a"]] == a[0]
@@ -88,11 +88,11 @@ def test_to_dict_simple():
 def test_to_dict_transform():
     a = [{"a": "aa", "b": "bb", PATH_KEY: "x"}]
     loader = Dicts.from_dicts(a)
-    pick_b = lambda d: d["b"]
-    out = loader.mutate(pick_b).map_by_name(key="a", default="_")
+    pick_b = lambda d: {"b": d["b"]}
+    out = loader.mutate(pick_b).map_by(key="b", default="_")
     assert isinstance(out, dict), "to_dict returns a dict"
     assert len(out) == 1
-    assert out[a[0]["a"]] == a[0]["b"]
+    assert out == {"bb": {"b": "bb"}}
 
 
 def test_group_by_unordered():
@@ -106,17 +106,17 @@ def test_duplicate():
     a = [{"name": 1, PATH_KEY: "x"}, {"name": 1, PATH_KEY: "y"}]
     loader = Dicts.from_dicts(a)
     with pytest.raises(ValueError):
-        loader.map_by_name(key="__PATH__", default="_")
+        loader.map_by(key="name", default="_")
 
 
-def test_duplicate_skip_errors():
-    a = [{"name": 1, PATH_KEY: "x"}, {"name": 1, PATH_KEY: "y"}]
-    try:
-        loader = Dicts.from_dicts(a)
-        loader.map_by_name(key="__PATH__", default="_")
-    except KeyError:
-        pytest.fail("Exception raised despite skip_errors set")
-        # raise
+# def test_duplicate_skip_errors():
+#     a = [{"name": 1, PATH_KEY: "x"}, {"name": 1, PATH_KEY: "y"}]
+#     try:
+#         loader = Dicts.from_dicts(a)
+#         loader.map_by(key="name", default="_")
+#     except ValueError:
+#         pytest.fail("Exception raised despite skip_errors set")
+#         # raise
 
 
 def test_group_by_file():
@@ -133,4 +133,3 @@ def test_group_by_file():
         "y": [{"name": 1, PATH_KEY: "y"}, {"name": 2, PATH_KEY: "y"}],
         DEFAULT_PATH_KEY: [{"name": 2}],
     }
-

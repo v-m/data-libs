@@ -42,7 +42,12 @@ class Dicts:
         self.is_path, self.is_dir = self.__classify_path()
 
         self.__dicts = dicts
-        self.items = self.remove_disabled_items() if self.load_disabled else self._items_
+        self.__items = self.__load_items()
+        self.keyed = False
+
+    @property
+    def items(self):
+        return self.__items
 
     def __classify_path(self):
         if self.path:
@@ -51,38 +56,40 @@ class Dicts:
             log.debug("No path supplied")
             return (False, False)
 
-    @property
-    def _items_(self) -> Iterable[Dict]:
+    def __load_items(self) -> Iterable[Dict]:
 
         if self.path and self.is_path:
             log.debug("Loading objects from single paths")
-            return Dicts.load_file(self.path)
+            items = Dicts.load_file(self.path)
 
         elif self.is_dir:
             log.debug("Loading objects from directory")
-            return self.load_directory()
+            items = self.load_directory()
 
         elif self.__dicts:
             log.debug("Loading supplied objects")
-            return chain(self.__dicts)
+            items = chain(self.__dicts)
 
-        e = "No objects found to load"
-        log.warning(e)
-        raise ValueError(e)
+        else:
+            e = "No objects found to load"
+            log.warning(e)
+            raise ValueError(e)
 
-    def remove_disabled_items(self) -> Iterable[Dict]:
-        if self._items_:
+        return items if self.load_disabled else self.remove_disabled_items(items)
+
+    def remove_disabled_items(self, items) -> Iterable[Dict]:
+        if items:
+            n = 0
             n_removed = 0
-            for n, item in enumerate(self._items_):
+            for n, item in enumerate(items):
                 if not item.get(self.disabled_key, False):
                     yield item
                 else:
                     n_removed += 1
+            else:
+                log.info(f"{n_removed} out of {n} items are enabled")
         else:
             log.warning("No items found or supplied to Dicts")
-            n = 0
-
-        log.info(f"{n_removed} out of {n} items are enabled")
 
     @staticmethod
     def load_file(path: Path) -> Iterable[Dict]:
@@ -141,11 +148,13 @@ class Dicts:
                 log.exception(e)
 
     def mutate(self, type_: Callable[[Dict], Any]):
-        self.items: List[Any] = [type_(item) for item in self.items]
+        """Transform the Dicts to a class or by a function"""
+        self.__items: List[Any] = [type_(item) for item in self.__items]
         return self
 
     def filter(self, predicate: Callable[[Any], bool]):
-        self.items: List[Any] = [item for item in self.items if predicate]
+        """Filter the Dicts according to some predicate"""
+        self.__items: List[Any] = [item for item in self.__items if predicate]
         return self
 
     def __key(self, key: Union[Callable[[Dict], str], str], default: str) -> Callable[[Dict], str]:
@@ -177,7 +186,10 @@ class Dicts:
         Returns:
             A dictionary
         """
-        for k, v in groupby(self.items, key=self.__key(key, default)):
+        self.keyed = True
+        _key = self.__key(key, default)
+        sorted_items = sorted(self.__items, key=_key)
+        for k, v in groupby(sorted_items, key=_key):
             items = list(v)
             n = len(items)
             if n > 1:
