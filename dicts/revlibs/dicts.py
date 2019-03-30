@@ -112,7 +112,7 @@ class Dicts:
 
             if contents:
                 for item in contents:
-                    # What is going on here
+                    # Add the source path for a dict to a predefined key
                     if isinstance(item, list):
                         for c in item:
                             c[PATH_KEY] = full_path
