@@ -79,7 +79,7 @@ def test_load_dicts(generator, num_files, expected_size, extensions):
 def test_to_dict_simple():
     a = [{"a": 1, PATH_KEY: "x"}]
     loader = Dicts.from_dicts(a)
-    out = loader.strict_group_by_name(key="a", default="_")
+    out = loader.map_by_name(key="a", default="_")
     assert isinstance(out, dict), "to_dict returns a dict"
     assert len(out) == 1
     assert out[a[0]["a"]] == a[0]
@@ -89,7 +89,7 @@ def test_to_dict_transform():
     a = [{"a": "aa", "b": "bb", PATH_KEY: "x"}]
     loader = Dicts.from_dicts(a)
     pick_b = lambda d: d["b"]
-    out = loader.items_as(pick_b).strict_group_by_name(key="a", default="_")
+    out = loader.mutate(pick_b).map_by_name(key="a", default="_")
     assert isinstance(out, dict), "to_dict returns a dict"
     assert len(out) == 1
     assert out[a[0]["a"]] == a[0]["b"]
@@ -98,7 +98,7 @@ def test_to_dict_transform():
 def test_group_by_unordered():
     a = [{PATH_KEY: "a"}, {PATH_KEY: "c"}, {PATH_KEY: "b"}, {PATH_KEY: "a"}]
     loader = Dicts.from_dicts(a)
-    out = loader.group_by_file()
+    out = loader.key_by_file()
     assert len(out["a"]) == 2
 
 
@@ -106,14 +106,14 @@ def test_duplicate():
     a = [{"name": 1, PATH_KEY: "x"}, {"name": 1, PATH_KEY: "y"}]
     loader = Dicts.from_dicts(a)
     with pytest.raises(ValueError):
-        loader.strict_group_by_name(key="__PATH__", default="_")
+        loader.map_by_name(key="__PATH__", default="_")
 
 
 def test_duplicate_skip_errors():
     a = [{"name": 1, PATH_KEY: "x"}, {"name": 1, PATH_KEY: "y"}]
     try:
         loader = Dicts.from_dicts(a)
-        loader.strict_group_by_name(key="__PATH__", default="_")
+        loader.map_by_name(key="__PATH__", default="_")
     except KeyError:
         pytest.fail("Exception raised despite skip_errors set")
         # raise
@@ -127,7 +127,7 @@ def test_group_by_file():
         {"name": 2},
     ]
     loader = Dicts.from_dicts(a)
-    out = dict(loader.group_by_file())
+    out = dict(loader.key_by_file())
     assert out == {
         "x": [{"name": 1, PATH_KEY: "x"}],
         "y": [{"name": 1, PATH_KEY: "y"}, {"name": 2, PATH_KEY: "y"}],

@@ -34,18 +34,17 @@ class Dicts:
     ):
         log.debug(f"Loading dicts from {path}")
 
-        self._skip_errors_ = skip_errors
-        self._load_disabled_ = load_disabled
-        self._disabled_key_ = disabled_key
-        self._dicts_ = dicts
+        self.skip_errors = skip_errors
+        self.load_disabled = load_disabled
+        self.disabled_key = disabled_key
 
         self.path = path.resolve() if path else None
-        self.is_path, self.is_dir = self.classify_path()
+        self.is_path, self.is_dir = self.__classify_path()
 
-        self.items = self.remove_disabled_items() if self._load_disabled_ else self._items_
-        self.cast_items = None
+        self.__dicts = dicts
+        self.items = self.remove_disabled_items() if self.load_disabled else self._items_
 
-    def classify_path(self):
+    def __classify_path(self):
         if self.path:
             return (self.path.is_file(), self.path.is_dir())
         else:
@@ -57,15 +56,15 @@ class Dicts:
 
         if self.path and self.is_path:
             log.debug("Loading objects from single paths")
-            return Dicts.single_file(self.path)
+            return Dicts.load_file(self.path)
 
         elif self.is_dir:
             log.debug("Loading objects from directory")
-            return self.directory()
+            return self.load_directory()
 
-        elif self._dicts_:
+        elif self.__dicts:
             log.debug("Loading supplied objects")
-            return chain(self._dicts_)
+            return chain(self.__dicts)
 
         e = "No objects found to load"
         log.warning(e)
@@ -75,7 +74,7 @@ class Dicts:
         if self._items_:
             n_removed = 0
             for n, item in enumerate(self._items_):
-                if not item.get(self._disabled_key_, False):
+                if not item.get(self.disabled_key, False):
                     yield item
                 else:
                     n_removed += 1
@@ -86,7 +85,7 @@ class Dicts:
         log.info(f"{n_removed} out of {n} items are enabled")
 
     @staticmethod
-    def single_file(path: Path) -> Iterable[Dict]:
+    def load_file(path: Path) -> Iterable[Dict]:
         """
         Load a single yaml or json file as dict.
         Location of path is also stored in the in PATH_KEY
@@ -115,7 +114,7 @@ class Dicts:
                         item[PATH_KEY] = full_path
                         yield item
 
-    def directory(self) -> Iterable[Dict]:
+    def load_directory(self) -> Iterable[Dict]:
         """
         Load all json and yaml files from a directory
         """
@@ -132,32 +131,28 @@ class Dicts:
                 continue
 
             try:
-                for document in Dicts.single_file(path):
+                for document in Dicts.load_file(path):
                     yield document
 
             except Exception as e:
-                if not self._skip_errors_:
+                if not self.skip_errors:
                     raise e
                 log.warning(f"Could not load {path}: {e}")
                 log.exception(e)
 
-    def items_as(self, type_: Callable[[Dict], Any]) -> Iterable[Any]:
-
-        def cast():
-            for item in self.items:
-                yield type_(item)
-        
-        self.cast_items = cast()
-
+    def mutate(self, type_: Callable[[Dict], Any]):
+        self.items: List[Any] = [type_(item) for item in self.items]
         return self
 
-    def _grouper_(
-        self, key: Union[Callable[[Dict], str], str], default: str
-    ) -> Callable[[Dict], str]:
-        """Convienience function to convert a string to a dictionary accessor function
+    def filter(self, predicate: Callable[[Any], bool]):
+        self.items: List[Any] = [item for item in self.items if predicate]
+        return self
+
+    def __key(self, key: Union[Callable[[Dict], str], str], default: str) -> Callable[[Dict], str]:
+        """Convenience function to convert a string to a dictionary accessor function
 
         Args:
-            key: A grouping function to pass to itertools.groupby 
+            key: A grouping function to pass to itertools.groupby
                  or a dictionary key name that will be converted to an accessor
 
         Returns:
@@ -165,36 +160,37 @@ class Dicts:
         """
         return lambda d: d.get(key, default) if isinstance(key, str) else key
 
-    def group_by(
-        self, key: Union[Callable[[Dict], str], str], default: str, strict: bool
+    def key_by(
+        self, key: Union[Callable[[Dict], str], str], default: str, map: bool
     ) -> Iterable[Tuple[str, List[Any]]]:
-        """Group a list of dicts by a function or key name. Choose to die if duplicates
-        appear in the list for validation.
+        """
+        Keys a list of dicts by a function or dictionary key.
+        If the key should result in a map (a 1-1 mapping) and does not,
+        key_by will throw an error
 
         Args:
             key: To be converted to a grouper function
-            default: The default grouping if the group function returns None for an 
-                     element
-            strict: Only allow groups with one element
-        
+            default: The default grouping if the group function returns None
+                     for an element
+            map: If the key_by should result in a map (i.e., a 1-1 mapping )
+
         Returns:
-            A dictionary 
+            A dictionary
         """
-        elements = self.cast_items if self.cast_items else self.items
-        for k, v in groupby(elements, key=self._grouper_(key, default)):
+        for k, v in groupby(self.items, key=self.__key(key, default)):
             items = list(v)
             n = len(items)
             if n > 1:
                 head, *_ = items
-                msg = f"Group key {head[PATH_KEY]} has {n} elements"
-                if strict:
+                msg = f"Key {head[PATH_KEY]} has {n} elements"
+                if map:
                     log.error(msg)
                     raise ValueError(msg)
                 else:
                     log.info(msg)
             yield (k, items)
 
-    def strict_group_by_name(self, key: str, default: str) -> Dict[str, Any]:
+    def map_by(self, key: Union[Callable[[Dict], str], str], default: str) -> Dict[str, Any]:
         """Groups a list of dicts into key-value pairs of unique key to a
         single element
 
@@ -207,12 +203,12 @@ class Dicts:
             A map of unique values in some config to the config.
             For example, for a directory containing config files {path: config}
         """
-        grouped_items = self.group_by(key=key, default=default, strict=True)
+        grouped_items = self.key_by(key=key, default=default, map=True)
         return {k: head for (k, (head, *_)) in grouped_items}
 
-    def group_by_file(self) -> Dict[str, List[Any]]:
+    def key_by_file(self) -> Dict[str, List[Any]]:
         """Groups the supplied dicts by filepath"""
-        grouped_items = self.group_by(key=PATH_KEY, default=DEFAULT_PATH_KEY, strict=False)
+        grouped_items = self.key_by(key=PATH_KEY, default=DEFAULT_PATH_KEY, map=False)
         return dict(grouped_items)
 
     @staticmethod
