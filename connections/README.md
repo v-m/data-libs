@@ -24,11 +24,19 @@ with connections.get("sandboxdb") as conn:
 
 ### Connections
 
-This connection library will use the connections specified in the directory `~/.revconnect`.
-If you would like to specify a different path. You may change the `"REVLIB_CONNECTIONS"`
-environment variable.
+This connection library will use the 'yaml/json' connections specified in the directory `~/.revconnect/`.
+If you would like to specify a different path.
+
+```
+- .revconnect/
+    ├ connections.yaml
+    └ connections.json
+```
 
 #### E.g:
+
+You may change the `"REVLIB_CONNECTIONS"`
+environment variable.
 
 ```
 export REVLIB_CONNECTIONS=<path_to_different_file>
@@ -50,6 +58,7 @@ We can have multiple connections in a single file.
   # connectiosn from '.1' -> '.3'
   dsn: 127.0.0.1:8888,127.0.0.1:8889
   user: postgres
+  # Specifying the environment variable
   password: _env:SANDBOXDB_PASSWORD
   dbname: countries
 
