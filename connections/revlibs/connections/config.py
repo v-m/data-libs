@@ -8,6 +8,10 @@ from revlibs.dicts import DictLoader
 
 _DEFAULT_DIRECTORY = Path.home() / ".revconnect/"
 _ENV_VAR_FOR_FILE = "REVLIB_CONNECTIONS"
+_PASSWORD_REQUIRED = (
+    # Provide a meaningful message
+    "Please ensure you have set the password as an environment variable"
+)
 
 
 def load(database):
@@ -58,12 +62,11 @@ class Config:
         """ Enforce retrieving password from environment."""
         result = self.config["password"]
         var_split = result.split(":", 2)
-        env_name = var_split[1]
         try:
+            env_name = var_split[1]
             return os.environ[env_name]
-        except KeyError:
-            logging.error("Ensure the password is set in the environment.")
-            raise
+        except (KeyError, IndexError) as err:
+            raise KeyError(_PASSWORD_REQUIRED)
 
     def __getattr__(self, key):
         """ Get attr from environment, if not set return default."""
@@ -74,7 +77,6 @@ class Config:
         if isinstance(result, str) and result.startswith("_env"):
             var_split = result.split(":", 2)
             var_name = var_split[1]
-            print(var_split)
             var_default = "" if len(var_split) < 3 else var_split[2]
             result = os.environ.get(var_name, var_default)
         return result

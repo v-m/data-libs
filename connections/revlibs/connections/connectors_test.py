@@ -11,15 +11,13 @@ import pyexasol
 from revlibs.connections import get
 
 
+# Environment variables are strings by default
+_TEST_CONNECTIONS = str(PurePath(__name__).parent / "resources" / "test_connections/")
+_TEST_EVIRONMENT = {"REVLIB_CONNECTIONS": _TEST_CONNECTIONS, "TEST_PASS": "IamAwizard"}
+
+
 class ConnectionMock(MagicMock):
     """ Mock connection objects."""
-
-
-# Environment variables are strings by default
-_TEST_CONNECTIONS = str(
-    Path(PurePath(__file__).parent / "resources" / "test_connections/")
-)
-_TEST_EVIRONMENT = {"REVLIB_CONNECTIONS": _TEST_CONNECTIONS, "TEST_PASS": "IamAwizard"}
 
 
 @patch.dict("os.environ", _TEST_EVIRONMENT)
