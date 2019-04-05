@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from .config import Config
+from revlibs.connections.config import Config
 
 
 def test_raise_password():
