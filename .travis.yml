@@ -9,4 +9,6 @@ matrix:
       env: SUB_PACKAGE=dicts
     - name: "Test logger"
       env: SUB_PACKAGE=logger
+    - name: "Test connections"
+      env: SUB_PACKAGE=connections
 script: pytest .
