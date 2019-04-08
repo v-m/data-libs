@@ -11,7 +11,7 @@ setup(
     install_requires=[
         "revlibs-dicts>=0.0.1",
         "revlibs-logger>=0.0.2",
-        "psycopg2>=2.7.7",
+        "psycopg2-binary>=2.8",
         "pyexasol>=0.5.2",
     ],
     namespace_packages=["revlibs"],
