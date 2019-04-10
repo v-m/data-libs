@@ -1,9 +1,12 @@
 """ Handles the connection config."""
-import os
-import logging
 from pathlib import Path
+import os
 
+from revlibs.logger import get_logger
 from revlibs.dicts import DictLoader
+
+
+logger = get_logger(__name__)
 
 
 _DEFAULT_DIRECTORY = Path.home() / ".revconnect/"
@@ -26,10 +29,10 @@ def load(database):
     if len(candidates) == 1:
         db_config, *_ = candidates
     elif len(candidates) > 1:
-        logging.error("Duplicate connection name '%s'.", database)
+        logger.error("Duplicate connection name '%s'.", database)
         raise KeyError(f"Duplicates for '{database}' found.")
     else:
-        logging.error(f"No config for db called: '%s'.", database)
+        logger.error(f"No config for db called: '%s'.", database)
         raise KeyError(f"Connection settings for '{database}' not found.")
 
     return Config(database, db_config)

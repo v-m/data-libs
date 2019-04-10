@@ -1,13 +1,14 @@
 """ Standard connection interface."""
-import logging
 from contextlib import contextmanager
 
 import psycopg2
 import pyexasol
 
+from revlibs.logger import get_logger
+
 from revlibs.connections import config
 
-log = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 class ConnectExasol:
