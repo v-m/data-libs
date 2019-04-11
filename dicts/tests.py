@@ -8,6 +8,20 @@ from revlibs.dicts import PATH_KEY, DEFAULT_PATH_KEY, Dicts
 yaml = YAML()
 
 
+class Animal:
+    def __init__(self, config):
+        self.animal = config.get("animal")
+        self.size = config.get("size")
+
+    def __repr__(self):
+        return f"Animal('A {self.animal} who weighs {self.size}kg')"
+
+    def __eq__(self, other):
+        if isinstance(self, other.__class__):
+            return self.animal == other.animal and self.size == other.size
+        return False
+
+
 def create_dir(num_files, dict_generator, extensions):
     tmp_dir = tempfile.mkdtemp()
     p = Path(tmp_dir)
@@ -89,7 +103,7 @@ def test_to_dict_transform():
     a = [{"a": "aa", "b": "bb", PATH_KEY: "x"}]
     loader = Dicts.from_dicts(a)
     pick_b = lambda d: {"b": d["b"]}
-    out = loader.mutate(pick_b).map_by(key="b", default="_")
+    out = loader.items_as(pick_b).map_by(key="b", default="_")
     assert isinstance(out, dict), "to_dict returns a dict"
     assert len(out) == 1
     assert out == {"bb": {"b": "bb"}}
@@ -120,6 +134,26 @@ def test_filter():
 
     animal = loader.filter(lambda d: d["animal"] == "rat").map_by("animal", "_")
     assert animal == {"rat": {"animal": "rat", "size": 1}}
+
+
+def test_cast_then_key():
+
+    data = [
+        {"animal": "cat", "size": "100"},
+        {"animal": "dog", "size": "100"},
+        {"animal": "rat", "size": "1"},
+        {"animal": "bat", "size": "5", "disabled": True},
+    ]
+
+    def animal_size(animal: Animal):
+        return animal.size
+
+    result = Dicts.from_dicts(data).items_as(Animal).key_by(animal_size, "_")
+    assert result["1"] == [Animal({"animal": "rat", "size": "1"})]
+    assert result["100"] == [
+        Animal({"animal": "cat", "size": "100"}),
+        Animal({"animal": "dog", "size": "100"}),
+    ]
 
 
 def test_group_by_file():

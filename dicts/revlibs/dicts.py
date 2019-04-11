@@ -157,7 +157,7 @@ class Dicts:
                 log.warning(f"Could not load {path}: {e}")
                 log.exception(e)
 
-    def mutate(self, type_: Callable[[Dict], Any]):
+    def items_as(self, type_: Callable[[Dict], Any]):
         """Transform the Dicts to a class or by a function"""
         self.__items: List[Any] = [type_(item) for item in self.__items]
         return self
@@ -179,7 +179,11 @@ class Dicts:
         Returns:
             A function by which a dictionary can be grouped
         """
-        return lambda d: d.get(key, default) if isinstance(key, str) else key
+        # return lambda d: d.get(key, default) if isinstance(key, str) else key
+        if isinstance(key, str):
+            return lambda d: d.get(key, default)
+        else:
+            return key
 
     def __key_by(
         self, key: Union[Callable[[Dict], Hashable], str], default: Hashable, map: bool
