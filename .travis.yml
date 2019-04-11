@@ -10,4 +10,6 @@ env:
   - SUB_PACKAGE=connections
 before_install:
   - cd $SUB_PACKAGE
+install:
+  - pip install .
 script: pytest
