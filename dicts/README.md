@@ -1,45 +1,108 @@
 # Dicts
 
-A library for loading json/yaml files from directories and single files.
+An API for manipulating `Dicts` where `Dicts = List[dict]`
+
+`Dicts` assumes you have a set of dictionaries which share a structure, such as a `jsonschema`.
+This library aims to simplify common operations that might need to be performed on lists of dictionaries.
+
+`Dicts` doesn't care whether your source is. You can load from
+
+ - A `json` or `yaml` file
+ - A directory
+ - An object of `List[dict]`
 
 ## Usage
 
+Say we have a configuration files `connections.yaml`
+
+```yaml
+# Postgres Example
+- name: sandboxdb
+  flavour: postgres
+  # We can specify multiple <host:port> combinations.
+  # To simplfy this you may also provide
+  # '127.0.0.1..3:8888' which will attempt sequential
+  # connectiosn from '.1' -> '.3'
+  dsn: 127.0.0.1:8888,127.0.0.1:8889
+  user: postgres
+  # Specifying the environment variable
+  password: _env:SANDBOXDB_PASSWORD
+  dbname: countries
+
+---
+
+# Exasol example
+- name: bigdb
+  flavour: exasol
+  dsn: _env:BIG_DB_DSN
+  user: default_user
+  password: _env:BIGDB_PASSWORD
+  schema: events
+```
+
+Note that this is a contrived example as the implicit `jsonschema` is so simple. Then, with `revlibs.dicts` we can load the config
+
 ```python
+import os
+
 from pathlib import Path
-from revlibs.dicts import DictLoader, PATH_KEY
-p = Path("revolut-datascience/infra/helios/config/tables")
-p = Path("../../revolut-datascience/infra/helios/config/tables")
+from revlibs.dicts import Dicts, PATH_KEY
 
-# You can also load a single file
-p = Path("revolut-datascience/infra/helios/config/tables/users.yaml")
+HOME = os.environ['APP_DIR']
+path = Path() / HOME / "config/connections.yaml"
 
-# Json files are also supported
-p = Path("revolut-datascience/infra/helios/config/tables/users.json")
+loader = Dicts.from_path(path)
+list(loader.items)
+```
 
-# Instantiate the loader
-loader = DictLoader.from_path(p)
+would output
 
-# By default, if yaml/json files are invalid, it will just warn and skip them.
-# Alternatively, you can ask the loader to fail in such case:
-loader = DictLoader.from_path(p, skip_errors=True)
+```python
+[{'__PATH__': '$APP_DIR/config/connections.yaml',
+  'dbname': 'countries',
+  'dsn': '127.0.0.1:8888,127.0.0.1:8889',
+  'flavour': 'postgres',
+  'name': 'sandboxdb',
+  'password': '_env:SANDBOXDB_PASSWORD',
+  'user': 'postgres'},
+ {'__PATH__': '$APP_DIR/config/connections.yaml',
+  'dsn': '_env:BIG_DB_DSN',
+  'flavour': 'exasol',
+  'name': 'bigdb',
+  'password': '_env:BIGDB_PASSWORD',
+  'schema': 'events',
+  'user': 'default_user'}]
+```
 
-# By default we skip yaml/json files which are disabled by having `disable: True`.
-# We can override this by passing load_disabled_entries = True:
-loader = DictLoader.from_path(p, load_disabled_entries=True)
+The loader can be configured to skip and log errors instead of raising.
 
-# We can even override the disabled key
-loader = DictLoader.from_path(p, disabled_key='active', load_disabled_entries=True)
+```python
+loader = Dicts.from_path(path, skip_errors=True)
+```
 
-# To access items, just access items :)
-# Each resulting dict also has an extra key "__PATH__", indicating the original file location
-loader.items
+The loader can be forced to load disabled entries. Disabled entries are specified in the config file via the `disabled_key` argument.
 
-# If your file is guaranteed to have only one dict, you need to get it out of the list:
-loader.items[0]
+```python
+loader = Dicts.from_path(path, 
+    disabled_key="disable",
+    load_disabled_entries=True)
+```
 
-# This will give you a dict of all the dicts found under a given path
-loader.group_by_key()
+You can key the items by some function 
 
+```python
+loader = Dicts.from_dicts(
+    [
+        {"animal": "cat", "size": "100"},
+        {"animal": "dog", "size": "100"},
+        {"animal": "rat", "size": "1"}
+    ]
+)
+
+loader.filter(lambda d: d["animal"] == "rat").items
+```
+
+```
 # You can transform the values from dict to any other object
 loader.group_by_key(transformator=Table.__init__)
 
