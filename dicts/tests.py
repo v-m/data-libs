@@ -109,14 +109,17 @@ def test_duplicate():
         loader.map_by(key="name", default="_")
 
 
-# def test_duplicate_skip_errors():
-#     a = [{"name": 1, PATH_KEY: "x"}, {"name": 1, PATH_KEY: "y"}]
-#     try:
-#         loader = Dicts.from_dicts(a)
-#         loader.map_by(key="name", default="_")
-#     except ValueError:
-#         pytest.fail("Exception raised despite skip_errors set")
-#         # raise
+def test_filter():
+    loader = Dicts.from_dicts(
+        [
+            {"animal": "cat", "size": 100},
+            {"animal": "dog", "size": 100},
+            {"animal": "rat", "size": 1},
+        ]
+    )
+
+    animal = loader.filter(lambda d: d["animal"] == "rat").map_by("animal", "_")
+    assert animal == {"rat": {"animal": "rat", "size": 1}}
 
 
 def test_group_by_file():

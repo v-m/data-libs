@@ -1,11 +1,10 @@
-from typing import Dict, Any, Iterable, Callable, List, Optional, Union, Tuple
+from typing import Dict, Any, Iterable, Callable, List, Optional, Union, Tuple, Hashable
 
 import json
 import logging
 from pathlib import Path
 
 from itertools import groupby, chain
-from functools import partial
 
 from ruamel.yaml import YAML
 
@@ -13,13 +12,15 @@ from ruamel.yaml import YAML
 log = logging.getLogger(__name__)
 yaml = YAML()
 
-# Original location of the file.
-# To be used to hint the user for file location which contains a potential problem.
-# Not mandatory.
+# "__PATH__" is a default key added to the dict to hint the dict's
+# source location
 PATH_KEY = "__PATH__"
 DEFAULT_PATH_KEY = "_"
 
+# The default key to exclude a dict from being loaded to Dict.items
 DISABLED_KEY = "disabled"
+# The default dictionary key to use in Dict.key_by where
+# Dict.key_by: List[Dicts] => Dict[str -> List[dict]]
 DEFAULT_KEY = "name"
 
 
@@ -42,14 +43,16 @@ class Dicts:
         self.is_path, self.is_dir = self.__classify_path()
 
         self.__dicts = dicts
-        self.__items = self.__load_items()
+        self.__items = list(self.__load_items())
         self.keyed = False
 
     @property
     def items(self):
+        """ Returns self.items which may have been cast or filtered downstream"""
         return self.__items
 
     def __classify_path(self):
+        """ Classify a path as a file or directory"""
         if self.path:
             return (self.path.is_file(), self.path.is_dir())
         else:
@@ -57,6 +60,10 @@ class Dicts:
             return (False, False)
 
     def __load_items(self) -> Iterable[Dict]:
+        """
+        Loads dicts from a path (file or directory) or a List[dict]
+        Removes disabled items before returning
+        """
 
         if self.path and self.is_path:
             log.debug("Loading objects from single paths")
@@ -78,6 +85,9 @@ class Dicts:
         return items if self.load_disabled else self.remove_disabled_items(items)
 
     def remove_disabled_items(self, items) -> Iterable[Dict]:
+        """
+        Yields only items which are not flagged as disabled via self.disabled_key
+        """
         if items:
             n = 0
             n_removed = 0
@@ -154,10 +164,12 @@ class Dicts:
 
     def filter(self, predicate: Callable[[Any], bool]):
         """Filter the Dicts according to some predicate"""
-        self.__items: List[Any] = [item for item in self.__items if predicate]
+        self.__items: List[Any] = [item for item in self.__items if predicate(item)]
         return self
 
-    def __key(self, key: Union[Callable[[Dict], str], str], default: str) -> Callable[[Dict], str]:
+    def __make_callable(
+        self, key: Union[Callable[[Dict], Hashable], str], default: Hashable
+    ) -> Callable[[Dict], Hashable]:
         """Convenience function to convert a string to a dictionary accessor function
 
         Args:
@@ -169,9 +181,27 @@ class Dicts:
         """
         return lambda d: d.get(key, default) if isinstance(key, str) else key
 
+    def __key_by(
+        self, key: Union[Callable[[Dict], Hashable], str], default: Hashable, map: bool
+    ) -> Iterable[Tuple[Hashable, List[Any]]]:
+        self.keyed = True
+        callable_key = self.__make_callable(key, default)
+        sorted_items = sorted(self.__items, key=callable_key)
+        for k, v in groupby(sorted_items, key=callable_key):
+            items = list(v)
+            n = len(items)
+            if n > 1:
+                msg = f"Key {k} has {n} elements"
+                if map:
+                    log.error(msg)
+                    raise ValueError(msg)
+                else:
+                    log.info(msg)
+            yield (k, items)
+
     def key_by(
-        self, key: Union[Callable[[Dict], str], str], default: str, map: bool
-    ) -> Iterable[Tuple[str, List[Any]]]:
+        self, key: Union[Callable[[Dict], str], str], default: str, map: bool = False
+    ) -> Dict[Hashable, List[Any]]:
         """
         Keys a list of dicts by a function or dictionary key.
         If the key should result in a map (a 1-1 mapping) and does not,
@@ -186,23 +216,17 @@ class Dicts:
         Returns:
             A dictionary
         """
-        self.keyed = True
-        _key = self.__key(key, default)
-        sorted_items = sorted(self.__items, key=_key)
-        for k, v in groupby(sorted_items, key=_key):
-            items = list(v)
-            n = len(items)
-            if n > 1:
-                head, *_ = items
-                msg = f"Key {head[PATH_KEY]} has {n} elements"
-                if map:
-                    log.error(msg)
-                    raise ValueError(msg)
-                else:
-                    log.info(msg)
-            yield (k, items)
+        grouped_items = self.__key_by(key=key, default=default, map=False)
+        return dict(grouped_items)
 
-    def map_by(self, key: Union[Callable[[Dict], str], str], default: str) -> Dict[str, Any]:
+    def key_by_file(self) -> Dict[Hashable, List[Any]]:
+        """Groups the supplied dicts by filepath"""
+        grouped_items = self.__key_by(key=PATH_KEY, default=DEFAULT_PATH_KEY, map=False)
+        return dict(grouped_items)
+
+    def map_by(
+        self, key: Union[Callable[[Dict], Hashable], str], default: Hashable
+    ) -> Dict[Hashable, Any]:
         """Groups a list of dicts into key-value pairs of unique key to a
         single element
 
@@ -215,13 +239,8 @@ class Dicts:
             A map of unique values in some config to the config.
             For example, for a directory containing config files {path: config}
         """
-        grouped_items = self.key_by(key=key, default=default, map=True)
+        grouped_items = self.__key_by(key=key, default=default, map=True)
         return {k: head for (k, (head, *_)) in grouped_items}
-
-    def key_by_file(self) -> Dict[str, List[Any]]:
-        """Groups the supplied dicts by filepath"""
-        grouped_items = self.key_by(key=PATH_KEY, default=DEFAULT_PATH_KEY, map=False)
-        return dict(grouped_items)
 
     @staticmethod
     def from_path(
