@@ -182,6 +182,9 @@ For example
 And to enforce mapping
 
 ```python
+> def light(d):
+>     return d.get("size", 100) < 100
+
 > Dicts.from_dicts(data, load_disabled=True) \ 
 >     .filter(light) \ 
 >     .items_as(Animal) \ 
